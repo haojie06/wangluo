@@ -1,98 +1,64 @@
+from selenium import webdriver
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+import fake_useragent
+from lxml import html
+import time
 
-import requests
-from bs4 import BeautifulSoup
-import database
-
-def get_music():
-    url = 'http://music.163.com/discover/toplist?id=3778678'
-    headers = {'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36'}
-    html = requests.get(url,headers=headers).text
-    print(html)
-    soup = BeautifulSoup(html,'lxml')
-
-    find_list = soup.find('ul',class_="f-hide").find_all('a')
-    for a in find_list:
-        music_url = 'http://music.163.com'+a['href']
-        music_name = a.text
-       # print(music_name,music_url)
-if __name__ == '__main__':
-    get_music()
-
-#f = requests.get(url,headers = hea)
-
-#有什么区别??
-#f = requests.get(url).content
-#html = f.decode('utf-8')
-#爬取第pag页的内容
-#以树莓派论坛为例
-def search(pa):
-    print("------------正在下载第"+str(pa)+"页")
-    pag = pa
-    url = 'http://shumeipai.nxez.com/page/' + str(pag)
-    page = requests.Session().get(url)
-    tree = html.fromstring(page.text)
-    print(tree)
-    #标题列表
-    head = tree.xpath('//h3[@class="entry-title mh-loop-title"]/a/text()')
-    headlist = []
-    for h in head:
-        h = str(h)
-        h = h[6:-4]
-       # print(h)
-        headlist.append(h)
-    #print(headlist)
-    #链接列表
-    link = tree.xpath('//h3[@class="entry-title mh-loop-title"]/a/@href') #获取需要的数据
-
-    #缩略文章
-    article = tree.xpath('//div[@class="mh-excerpt"]/p/text()')
-
-    i = 0
-    while(i < len(headlist)):
-        #向数据库中添加数据
-        database.add_news(headlist[i],article[i],link[i])
-        i+=1
-
-    #获得页面的总数
-    url = "http://shumeipai.nxez.com/page/1"
-    f = requests.Session().get(url).text
-    tree = html.fromstring(f)
-    maxNum = (tree.xpath('//div[@class="nav-links"]/a[2]/text()'))
-    print(int(maxNum[0]))
-
-    for i in range(1,2):
-        search(i)
+def load_more(times):
+    for i in range(times):
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        #ActionChains(driver).key_down(Keys.DOWN).perform()
+        time.sleep(10)
 
 
-def add_news(title, content, link):
-    db = pymysql.connect("localhost", "root", "haojie06",charset='utf8')
-    cursor = db.cursor()
-    cursor.execute("CREATE DATABASE IF NOT EXISTS test;")
-    cursor.execute("USE test")
+ua = fake_useragent.UserAgent()
+#dcap = dict(DesiredCapabilities.PHANTOMJS)  #设置useragent
+#dcap['user'] = ua.ie
+headers = {}
+headers['User-Agent'] = ua.chrome
+#设置不加载图片
+SERVICE_ARGS = ['--load-images=false', '--disk-cache=true','--ignore-ssl-errors=true']
+#driver = webdriver.PhantomJS(service_args=SERVICE_ARGS)
+
+#print(dcap)
+'''
+cookie: _zap=19147efd-6a29-4ab3-ba62-91de50e5fdad; __utma=155987696.1446191927.1516457093.1516457093.1516465122.2; __utmz=155987696.1516465122.2.2.utmcsr=baidu|utmccn=(organic)|utmcmd=organic; d_c0="AFBikpWGmw2PTpSshjLcjXv8dojCmuOtgeA=|1526555453"; q_c1=6bb6bec6e0574c598dccabfd54e8a561|1529938688000|1516191942000; _xsrf=6902aed1-24c9-4bed-9c77-c6bc88628a0d; l_n_c=1; n_c=1; l_cap_id="ZGE1MTVkNGY1Y2RkNDUxZGJjZDUxM2YwZTBiYjA4MWU=|1530927322|724337cb8c014caca26a78a0784cbfd11399b3a4"; r_cap_id="MGY4ZTQzYTU2MjliNDhlYzhiYjZmZjk1ZWJlOWZkMmM=|1530927322|b900fbcc7dd82f92d86bfebf95eda82bc5fd60d9"; cap_id="NTk3YWQ1MzYxMTdiNDUyYWE3ZGQyMzczMGE1ZmFkMDY=|1530927322|4f114363d45c5b45f591c31d39cc788b815499a1"; capsion_ticket="2|1:0|10:1530929119|14:capsion_ticket|44:YmE0MjZiZTNjNmI5NDBhZDgyMTZkNjFjMmZlMzNmMWY=|b379cef3517c22dc4756c4c1850baab62bdcecca36a2cb293be7f3fbd28d1cc0"; z_c0="2|1:0|10:1530929121|4:z_c0|92:Mi4xbGJ3QkJRQUFBQUFBVUdLU2xZYWJEU1lBQUFCZ0FsVk40VzB0WEFBSHhKU3FCeWlsQ0dKRWZCcmxzR2NPelNLODF3|2aeb691ccd302eef5b65a1f1c4dd69e634e0ddae599752f6cd7d69e2d748dd33"
+'''
 
 
-    sql = '''
-    CREATE TABLE IF NOT EXISTS news(
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      news_title CHAR(20) NOT NULL,
-      news_content VARCHAR(100) NOT NULL , 
-      news_link CHAR(100) NOT NULL
-    )'''
+driver = webdriver.PhantomJS(desired_capabilities=headers,service_args=SERVICE_ARGS)
+driver.get('https://www.zhihu.com/people/zhang-jia-wei/activities')  # 加载网页
+data = driver.page_source  # 获取网页文本
+print(data)
+tree = html.fromstring(data)
+follow_name = tree.xpath('//span[@class="ProfileHeader-name"]/text()')[0]
+pic_link = tree.xpath('//img[@class="Avatar"]/@src')
+title_list = tree.xpath('//a[@data-za-detail-view-element_name="Title"]/text()')
+action_list = tree.xpath('//span[@class="ActivityItem-metaTitle"]/text()')
+content_list = tree.xpath('//span[@class="RichText ztext CopyrightRichText-richText"]/text()')
+follow_link = people_link = 'https://www.zhihu.com/people/' + uid + '/activities'
+print(len(action_list))
+print(action_list)
+print(len(title_list))
+print(title_list)
+print(len(content_list))
+print(content_list)
+print(follow_name)
 
-    cursor.execute(sql)
-    new_link = link
-    new_title = title
-    news_content = content
-    sql2 = "INSERT IGNORE INTO news (news_title,news_content,news_link) \
-    VALUES \
-    ('%s','%s','%s')" % (new_title, news_content, new_link)
 
 
-    try:
-        cursor.execute(sql2)
-        db.commit()
-        db.close()
-        print("成功写入数据")
-    except:
-        db.rollback()
-        print("写入数据失败")
+
+'''
+loadmore模拟滑动到最底部，等待十秒加载，获取更多
+load_more(1)
+data = driver.page_source  # 获取网页文本
+tree = html.fromstring(data)
+title_list = tree.xpath('//a[@data-za-detail-view-element_name="Title"]/text()')
+print(title_list)
+#action_list = tree.xpath('//span[@class="ActivityItem-metaTitle"]/text()]')
+#print(action_list)
+driver.save_screenshot('1.png')  # 截图保存
+#print(title_list)
+#driver.quit()
+'''
