@@ -1,12 +1,13 @@
 import pymysql
 import json
+import time
 '''
 mysql相关的操作
 添加，查询
 '''
 #创建数据库以及数据表，放在方法中执行会出错，故第一次使用时先执行一次
 def init_database():
-    db = pymysql.connect("localhost", "root", "haojie06", charset="utf8")
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
     cursor.execute("USE bot_db")
@@ -36,8 +37,67 @@ def init_database():
     )'''
     cursor.execute(sql)
 
+    sql = '''
+           CREATE TABLE IF NOT EXISTS zhihu_tb(
+             id INT PRIMARY KEY AUTO_INCREMENT,
+             user_key CHAR(10) NOT NULL,
+             source CHAR(20) NOT NULL,
+             user_head_pic VARCHAR(300) NOT NULL,
+             follow_uid CHAR(30) NOT NULL,
+             user_link VARCHAR(200) NOT NULL,
+             user_name CHAR(20) NOT NULL,
+             user_action CHAR(20) NOT NULL,
+             article_title VARCHAR(100) NOT NULL ,
+             article_content VARCHAR(300) NOT NULL,
+             push_time CHAR(20) NOT NULL
+           )'''
+    cursor.execute(sql)
+    #热搜，百度，百度贴吧三个信息的排行榜
+    sql = '''
+           CREATE TABLE IF NOT EXISTS hot_news_tb(
+             source CHAR(20) NOT NULL,
+             news_rank INT NOT NULL,
+             news_title CHAR(50) NOT NULL,
+             news_link VARCHAR(350) NOT NULL,
+             news_source_link VARCHAR(200) NOT NULL,
+             news_hotrate CHAR(30) NOT NULL
+           )'''
+    cursor.execute(sql)
+    #百度风云榜的一些媒体类榜单
+    sql = '''
+        CREATE TABLE IF NOT EXISTS media_tb(
+            source CHAR(20) NOT NULL,
+            media_rank INT NOT NULL,
+            media_title CHAR(100) NOT NULL,
+            hot_rate CHAR(20) NOT NULL,
+            media_link VARCHAR(200) NOT NULL 
+    )'''
+    cursor.execute(sql)
 
+    sql = '''
+        CREATE TABLE IF NOT EXISTS follow_media_tb(
+          source CHAR(20) NOT NULL,
+          user_key CHAR (10) NOT NULL,
+          follow_uid CHAR(30) NOT NULL,
+          follow_media_name CHAR(40) NOT NULL,
+          cover_img_link VARCHAR(300) NOT NULL,
+          recently_update_link VARCHAR(300) NOT NULL ,
+          media_catlog_link VARCHAR(300) NOT NULL,
+          author char(20) NOT NULL,
+          intro CHAR(150) NOT NULL,
+          recent_update_msg VARCHAR(200) NOT NULL 
+        )
+    '''
 
+    cursor.execute(sql)
+
+    sql = '''
+        CREATE TABLE IF NOT EXISTS keys_tb(
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            user_key INT NOT NULL
+        )
+    '''
+    cursor.execute(sql)
 
 
 
@@ -45,11 +105,10 @@ def init_database():
 #音乐的添加数据库方法 source来源（网易，QQ。酷狗）,music_list(音乐榜单),rank（排名）,song_name,singer_name(歌手),music_link,pic_link
 def add_song(song_source,music_list,song_rank,song_name,singer_name,music_link,pic_link):
     print("开始添加数据")
-    db = pymysql.connect("localhost","root","haojie06",charset="utf8")
+    db = pymysql.connect("localhost","webbot","webbot",charset="utf8")
     cursor = db.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
     cursor.execute("USE bot_db")
-
     #抛弃旧数据
     cursor.execute("TRUNCATE TABLE IF EXISTS song_tb")
 
@@ -90,44 +149,36 @@ def add_song(song_source,music_list,song_rank,song_name,singer_name,music_link,p
             db.rollback()
             print("写入数据失败")
 
+    cursor.close()
+    db.close()
+
 #微博追踪
 #数据表 请求码，数据源,用户头像，用户ID，文章链接，文章内容
 def add_weibo(user_id,source,user_head_pic,user_uid,blog_name,article_link,article_content,push_time):
-    db = pymysql.connect("localhost", "root", "haojie06", charset="utf8")
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
     cursor.execute("USE bot_db")
     #cursor.execute("DROP TABLE IF EXISTS sina_blog_tb")不知道为什么现在不能自动创建表，请先手动执行
-    sql = '''
-    CREATE TABLE IF NOT EXISTS sina_blog_tb(
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      user_id CHAR(100) NOT NULL,
-      source CHAR(20) NOT NULL,
-      user_head_pic CHAR(100) NOT NULL,
-      follow_uid CHAR(30) NOT NULL,
-      article_link CHAR(100) NOT NULL,
-      blog_name CHAR(20) NOT NULL,
-      article_content VARCHAR (300) NOT NULL,
-      push_time CHAR(20) NOT NULL
-    )'''
-    cursor.execute(sql)
+
 
     #清空该用户id对应的行
     sq = 'DELETE IGNORE FROM sina_blog_tb WHERE user_id="%s" AND follow_uid="%s"' % (user_id,user_uid)
     cursor.execute(sq)
     #user_id,source,user_head_pic,user_uid,article_link,article_content
-    for i in range(10):
+    rag = min(len(push_time),len(article_content))
+    for i in range(rag):
         print("正在处理接收到的数据")
-        print(len(article_content))
-
+        #print(len(article_content))
         content = article_content[i]
         time = push_time[i]
-        print(content)
-        print(time)
+
+        #print(content)
+        #print(time)
+
         #print(user_id+source+user_head_pic+user_uid+article_link+article_content+push_time)
         #抛弃旧有表单？ 需要检测微博是否有更新，如果最新文章发布时间比表单头部的发布时间还要新，那么会再次执行该操作，更新
         #将当前用户 user_id 对应的行全部删除，重新爬取
-
         sql2 = "INSERT INTO sina_blog_tb (user_id,source,user_head_pic,follow_uid,article_link,blog_name,article_content,push_time) \
         VALUES \
         ('%s','%s','%s','%s','%s','%s','%s','%s')" % (user_id, source, user_head_pic, user_uid, article_link, blog_name, content, time)
@@ -139,54 +190,123 @@ def add_weibo(user_id,source,user_head_pic,user_uid,blog_name,article_link,artic
         except:
             db.rollback()
             print("写入数据失败")
+    cursor.close()
+    db.close()
 
-
-
-#返回json
-def get_data(table_name):
-    db = pymysql.connect("localhost", "root", "haojie06",charset='utf8')
+def add_zhihu(round_num,user_key,source,user_head_pic,follow_uid,follow_name,follow_link,user_action,article_title,article_content,push_time):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
-    cursor.execute("USE test")
-    sql = "SELECT id,news_title,news_link FROM %s ORDER BY id " % (table_name)
-    cursor.execute(sql)
-    #获得数据表中字段名
-    fields = cursor.description
-    data = cursor.fetchall()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
+    cursor.execute("USE bot_db")
+    # cursor.execute("DROP TABLE IF EXISTS sina_blog_tb")不知道为什么现在不能自动创建表，请先手动执行 INI
+    sq = 'DELETE IGNORE FROM zhihu_tb WHERE user_key="%s" AND follow_uid="%s"' % (user_key, follow_uid)
+    cursor.execute(sq)
+    for i in range(round_num):
+        sql2 = "INSERT INTO zhihu_tb (user_key,source,user_head_pic,follow_uid,user_link,user_name,user_action,article_title,article_content,push_time) \
+        VALUES \
+        ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" % (
+            user_key, source, user_head_pic, follow_uid, follow_link, follow_name,user_action[i],article_title[i], article_content[i], push_time[i])
+        '''
+        print(user_key)
+        print(follow_name)
+        print(follow_link)
+        print(user_head_pic)
+        print(follow_uid)
+        print(user_action[i])
+        print(article_title[i])
+        print(article_content[i])
+        print(push_time[i])
+        '''
+
+        try:
+            cursor.execute(sql2)
+            db.commit()
+            print("成功写入数据")
+        except:
+            db.rollback()
+            print("写入数据失败")
+    cursor.close()
+    db.close()
+
+
+def add_media_follow(source,user_key,follow_uid,follow_media_name,cover_img_link,recently_update_link,media_catlog_link,author,intro,recent_update_msg):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
+    cursor.execute("USE bot_db")
+    #删除掉同一用户数据表中原有的字段，方便更新
+    sq = 'DELETE IGNORE FROM follow_media_tb WHERE user_key="%s" AND follow_uid="%s"' % (user_key, follow_uid)
+    #    source, user_key, follow_uid, follow_media_name, cover_img_link, recently_update_link, media_catlog_link, author, intro, recent_update_msg
+    cursor.execute(sq)
+
+    sql2 = "INSERT INTO follow_media_tb (source,user_key,follow_uid,follow_media_name,cover_img_link,recently_update_link,media_catlog_link, author,intro,recent_update_msg) \
+    VALUES \
+    ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" % (
+            source, user_key, follow_uid, follow_media_name, cover_img_link,recently_update_link,media_catlog_link,author,intro,recent_update_msg)
+    try:
+            cursor.execute(sql2)
+            db.commit()
+            print("成功写入数据")
+    except:
+            db.rollback()
+            print("写入数据失败")
+    cursor.close()
+    db.close()
+
+def add_news(source,news_rank_li,news_title_li,news_link_li,news_source_link,news_hotrate_li):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
+    cursor.execute("USE bot_db")
+    # cursor.execute("DROP TABLE IF EXISTS sina_blog_tb")不知道为什么现在不能自动创建表，请先手动执行 INI
+    #删除原来的源
+    sq = 'DELETE IGNORE FROM hot_news_tb WHERE source="%s"' % (source)
+    cursor.execute(sq)
+    for i in range(20):
+        sql2 = "INSERT INTO hot_news_tb (source,news_rank,news_title,news_link,news_source_link,news_hotrate) \
+        VALUES \
+        ('%s','%d','%s','%s','%s','%s')" % (
+            source, int(news_rank_li[i]), news_title_li[i], news_link_li[i], news_source_link,news_hotrate_li[i])
+
+        try:
+            cursor.execute(sql2)
+            db.commit()
+            print("成功写入数据")
+        except:
+            db.rollback()
+            print("写入数据失败")
+    cursor.close()
+    db.close()
+
+def add_medias(source,rank_li,title_li,hotrate_li,link_li):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    # cursor.execute("DROP TABLE IF EXISTS sina_blog_tb")不知道为什么现在不能自动创建表，请先手动执行 INI
+    # 删除原来的源
+    sq = 'DELETE IGNORE FROM media_tb WHERE source="%s"' % (source)
+    cursor.execute(sq)
+    for i in range(10):
+        link = (str(link_li[i]).replace('amp;', ''))
+        print("正在写入")
+        sql2 = "INSERT INTO media_tb (source,media_rank,media_title,hot_rate,media_link) \
+            VALUES \
+            ('%s','%s','%s','%s','%s')" % (
+            source, int(rank_li[i]), str(title_li[i]), str(hotrate_li[i]), link)
+        try:
+            cursor.execute(sql2)
+            db.commit()
+            print("成功写入数据")
+        except:
+            db.rollback()
+            print("写入数据失败")
 
     cursor.close()
     db.close()
-    #将mysql中的数据转为json
-    #字段名列表 例如 [id,news_title,news,link]
-    column_list = []
-    for i in fields:
-        column_list.append(i[0])
-    print(column_list)
-    #data中的每一行元素添加到字典中
-    '''
-    jsondata = []
-    for row in data:
-        result = {}
-        result[column_list[0]] = row[0]
-        result[column_list[1]] = row[1]
-        result[column_list[2]] = row[2]
-        jsondata.append(result)
-    print("转化为列表字典" )
-    jsondatar = json.dumps(jsondata,ensure_ascii=False)
-    #去除首尾的方括号
-    #return jsondatar[1:len(jsondatar)-1]
-    '''
-    #如果直接返回字符串
-    stringdata = []
-    for row in data:
-        #print("row0:"+str(row[0]))
-        #print('row1:'+row[1])
-        fi = str(row[0]) +'$$'+row[1]+'$$' + row[2]
-        stringdata.append(fi)
-    return (stringdata)
 
 #获得音乐榜单，source传入源
 def get_music(source):
-    db = pymysql.connect("localhost","root","haojie06",charset="utf8")
+    db = pymysql.connect("localhost","webbot","webbot",charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
     sql = 'SELECT song_source, song_list, song_rank, song_name, song_singer,song_link, song_pic FROM song_tb WHERE song_source="%s"' % (source)
@@ -202,23 +322,148 @@ def get_music(source):
     return music_data
 
 def get_sina_blog(user_id):
-    db = pymysql.connect("localhost", "root", "haojie06", charset="utf8")
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    #先获得该用户下的所有博主名
+    sql = 'SELECT DISTINCT blog_name FROM sina_blog_tb WHERE user_id=%s' % (user_id)
+    cursor.execute(sql)
+    blog_name_li =[]
+    data = cursor.fetchall()
+    for i in data:
+        blog_name_li.append(i[0])
+    print(blog_name_li)
+    blog_data = []
+    for j in blog_name_li:
+        sql = 'SELECT source,follow_uid,user_head_pic,blog_name,article_link,article_content,push_time FROM sina_blog_tb WHERE user_id="%s" AND blog_name="%s" ' % (user_id,j)
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        for row in data:
+            str = row[0] + '$$' + row[1] + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' + row[6]
+            blog_data.append(str)
+        div = '&&'
+        blog_data.append(div)
+    #之后循环，博主之间添加分隔符
+    db.close()
+    #print(blog_data)
+    return blog_data
+
+def get_zhihu(user_id):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    sql = 'SELECT DISTINCT user_name FROM zhihu_tb WHERE user_key=%s' % (user_id)
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    zhihu_name_li = []
+    for i in data:
+        zhihu_name_li.append(i[0])
+    print(zhihu_name_li)
+
+    zhihu_data = []
+    for j in zhihu_name_li:
+        sql = 'SELECT source, follow_uid, user_head_pic, user_name, user_link, user_action, article_title, article_content, push_time FROM zhihu_tb WHERE user_key="%s" AND user_name="%s"' % (user_id,j)
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        for row in data:
+            str = row[0] + '$$' + row[1] + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' + row[6] + '$$' + row[7] + '$$' + row[8]
+            zhihu_data.append(str)
+        div = '&&'
+        zhihu_data.append(div)
+    
+    cursor.close()
+    db.close()
+    return zhihu_data
+
+def get_news():
+
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
 
-    sql = 'SELECT source,follow_uid,user_head_pic,blog_name,article_link,article_content,push_time FROM sina_blog_tb WHERE user_id=%s' % (user_id)
+    sql = 'SELECT source, news_rank, news_title, news_link, news_hotrate FROM hot_news_tb ORDER BY news_rank'
     cursor.execute(sql)
     data = cursor.fetchall()
-    blog_data = []
+    news_data = []
     for row in data:
-        str = row[0] + '$$' + row[1] + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' + row[6]
-        print(str)
-        blog_data.append(str)
+        lin = row[0] + '$$' + str(row[1]) + '$$' + row[2] + '$$' + row[3] + '$$' + row[4]
+        #print(str)
+        news_data.append(lin)
+    cursor.close()
+    #print(news_data)
     db.close()
-    return blog_data
+    return news_data
+#微博热搜，百度风云，贴吧热门
 
+def get_medias():
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+
+    sql = 'SELECT source, media_rank, media_title, hot_rate, media_link FROM media_tb '
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    media_data = []
+    for row in data:
+        result = row[0] + '$$' + str(row[1]) + '$$' + row[2] + '$$' + row[3] + '$$' + row[4]
+        print(result)
+        media_data.append(result)
+    cursor.close()
+    #print(news_data)
+    db.close()
+    return media_data
+def get_follow_media(user_key):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+
+    sql = 'SELECT source, follow_media_name, cover_img_link, media_catlog_link, recently_update_link, recent_update_msg, author, intro, cover_img_link, recently_update_link, media_catlog_link FROM follow_media_tb WHERE user_key="%s"' % (user_key)
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    news_data = []
+    for row in data:
+        lin = row[0] + '$$' + str(row[1]) + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' + row[6] + '$$' + row[7] + '$$' + row[8] + '$$' + row[9]+ '$$' + row[10]
+        #print(str)
+        news_data.append(lin)
+    cursor.close()
+    #print(news_data)
+    db.close()
+    return news_data
+
+def get_key():
+    key_list = []
+    db = pymysql.connect('localhost','webbot','webbot',charset='utf8')
+    cursor = db.cursor()
+    cursor.execute('USE bot_db')
+    cursor.execute('SELECT user_key FROM keys_tb ORDER BY user_key')
+    keyl = cursor.fetchall()
+    for i in keyl:
+        key_list.append(i[0])
+
+    if len(key_list) == 0:
+        key_list.append(1)
+        new_key = 1
+    else:
+        new_key = int(key_list[-1]) + 1
+    sql2 = "INSERT INTO keys_tb (user_key) \
+    VALUES \
+    ('%d')" % (new_key)
+    try:
+        cursor.execute(sql2)
+        db.commit()
+        print("成功创建key")
+    except:
+        db.rollback()
+        print("创建key失败")
+    cursor.close()
+    db.close()
+    return str(new_key)
 
 if __name__ == '__main__':
     #data = get_sina_blog('1')
     #     print(data)
     init_database()
+    #get_sina_blog('1')
+    #get_news()
+    #i = get_follow_media('1')
+    #print(i)

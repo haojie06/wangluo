@@ -62,3 +62,44 @@ driver.save_screenshot('1.png')  # 截图保存
 #print(title_list)
 #driver.quit()
 '''
+
+def get_data(table_name):
+    db = pymysql.connect("localhost", "root", "haojie06",charset='utf8')
+    cursor = db.cursor()
+    cursor.execute("USE test")
+    sql = "SELECT id,news_title,news_link FROM %s ORDER BY id " % (table_name)
+    cursor.execute(sql)
+    #获得数据表中字段名
+    fields = cursor.description
+    data = cursor.fetchall()
+
+    cursor.close()
+    db.close()
+    #将mysql中的数据转为json
+    #字段名列表 例如 [id,news_title,news,link]
+    column_list = []
+    for i in fields:
+        column_list.append(i[0])
+    print(column_list)
+    #data中的每一行元素添加到字典中
+    '''
+    jsondata = []
+    for row in data:
+        result = {}
+        result[column_list[0]] = row[0]
+        result[column_list[1]] = row[1]
+        result[column_list[2]] = row[2]
+        jsondata.append(result)
+    print("转化为列表字典" )
+    jsondatar = json.dumps(jsondata,ensure_ascii=False)
+    #去除首尾的方括号
+    #return jsondatar[1:len(jsondatar)-1]
+    '''
+    #如果直接返回字符串
+    stringdata = []
+    for row in data:
+        #print("row0:"+str(row[0]))
+        #print('row1:'+row[1])
+        fi = str(row[0]) +'$$'+row[1]+'$$' + row[2]
+        stringdata.append(fi)
+    return (stringdata)
