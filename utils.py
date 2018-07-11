@@ -4,12 +4,13 @@ import time
 from selenium import webdriver
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import fake_useragent
+
 '''
 新浪微博时间处理
 将一个小时内发的微博（多少分钟前）转为XX月XX日XX时XX分的格式
 如 07-23 12:06
 '''
-def deal_with_time(current_time,push_time):
+def deal_with_time_sina(current_time,push_time):
 
     cur_hour = current_time.split(' ')[1].split(':')[0]
     cur_min = current_time.split(' ')[1].split(':')[1]
@@ -55,67 +56,6 @@ def deal_with_time(current_time,push_time):
         new_list.append(t)
     return new_list
 
-#生成板块二中用户需要的钥匙
-
-
-def get_stored_key():
-    key_list = []
-    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
-    cursor = db.cursor()
-    cursor.execute("USE bot_db")
-    cursor.execute('SELECT user_key FROM keys_tb ORDER BY user_key')
-    keyl = cursor.fetchall()
-    for i in keyl:
-        key_list.append(i[0])
-    return key_list
-    #ge = deal_with_time('07-06 12:13',['今天 11:32','5分钟前','刚刚','07月05日 22:00','34分钟前\xa0来自微博 weibo.com'])
-
-def get_stored_uid_sina(key):
-    uid_list = []
-    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
-    cursor = db.cursor()
-    cursor.execute("USE bot_db")
-    sql = 'SELECT DISTINCT follow_uid FROM sina_blog_tb WHERE user_id="%s"' % (key)
-    cursor.execute(sql)
-    data = cursor.fetchall()
-    print(cursor.fetchall())
-    for j in data:
-        uid_list.append(j[0])
-    print(uid_list)
-    return uid_list
-#get_stored_key()
-#get_stored_uid('1')
-
-def get_stored_uid_zhihu(key):
-    uid_list = []
-    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
-    cursor = db.cursor()
-    cursor.execute("USE bot_db")
-    sql = 'SELECT DISTINCT follow_uid FROM zhihu_tb WHERE user_key="%s"' % (key)
-    cursor.execute(sql)
-    data = cursor.fetchall()
-    for j in data:
-        uid_list.append(j[0])
-    print(uid_list)
-    cursor.close()
-    db.close()
-    return uid_list
-#输入 起点中文网，腾讯视频，腾讯漫画获得各自的所有
-def get_stored_uid_media(key,type):
-    uid_list = []
-    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
-    cursor = db.cursor()
-    cursor.execute("USE bot_db")
-    sql = 'SELECT DISTINCT follow_uid FROM follow_media_tb WHERE source="%s" AND user_key="%s"' % (type,key)
-    cursor.execute(sql)
-    data = cursor.fetchall()
-    for j in data:
-        uid_list.append(j[0])
-    return uid_list
-
-#get_stored_key()
-#get_stored_uid('1')
-
 
 def deal_with_time_zhihu(time_list):
     new_list = []
@@ -131,9 +71,7 @@ def deal_with_time_zhihu(time_list):
         month = date[0]
         if '小时前' in t:
             h = t.split('小时前')[0]
-            #print(str(hour) + '-' + str(h))
             hour = int(hour) - int(h)
-            #print(str(hour))
             if hour < 0:
                 day = str(int(day) - 1)
                 hour = str(24 + hour)
@@ -144,7 +82,6 @@ def deal_with_time_zhihu(time_list):
             new_list.append(new_time)
         elif '分钟前' in t:
             m = t.split('分钟前')[0]
-            #print(str(minute) + '-' + str(m))
 
             minute = int(minute) - int(m)
             if minute < 0:
@@ -187,6 +124,65 @@ def deal_with_time_zhihu(time_list):
 
     return new_list
 
+#生成板块二中用户需要的钥匙
+#得到已经储存的key,程序在初始化的时候查看本地是否有，没有则向服务器请求
+def get_stored_key():
+    key_list = []
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    cursor.execute('SELECT user_key FROM keys_tb ORDER BY user_key')
+    keyl = cursor.fetchall()
+    for i in keyl:
+        key_list.append(i[0])
+    return key_list
+
+#取出用户关注的uid
+def get_stored_uid_sina(key):
+    uid_list = []
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    sql = 'SELECT DISTINCT follow_uid FROM sina_blog_tb WHERE user_id="%s"' % (key)
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    #print(cursor.fetchall())
+    for j in data:
+        uid_list.append(j[0])
+    #print(uid_list)
+    return uid_list
+#get_stored_key()
+#get_stored_uid('1')
+
+def get_stored_uid_zhihu(key):
+    uid_list = []
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    sql = 'SELECT DISTINCT follow_uid FROM zhihu_tb WHERE user_key="%s"' % (key)
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    for j in data:
+        uid_list.append(j[0])
+    #print(uid_list)
+    cursor.close()
+    db.close()
+    return uid_list
+
+#输入 起点中文网，腾讯视频，腾讯漫画获得各自的所有
+def get_stored_uid_media(key,type):
+    uid_list = []
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    sql = 'SELECT DISTINCT follow_uid FROM follow_media_tb WHERE source="%s" AND user_key="%s"' % (type,key)
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    for j in data:
+        uid_list.append(j[0])
+    return uid_list
+
+#封装了selenium获得浏览器的过程
 def get_webdriver():
     #不加载图片
     ua = fake_useragent.UserAgent()
@@ -197,5 +193,3 @@ def get_webdriver():
     SERVICE_ARGS = ['--load-images=false', '--disk-cache=true', '--ignore-ssl-errors=true']
     driver = webdriver.PhantomJS(desired_capabilities=dcap,service_args=SERVICE_ARGS)
     return driver
-
-#deal_with_time_zhihu(['昨天 23:00','46分钟前'])

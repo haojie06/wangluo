@@ -110,7 +110,8 @@ def add_song(song_source,music_list,song_rank,song_name,singer_name,music_link,p
     cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
     cursor.execute("USE bot_db")
     #抛弃旧数据
-    cursor.execute("TRUNCATE TABLE IF EXISTS song_tb")
+    #cursor.execute("TRUNCATE TABLE IF EXISTS song_tb")
+    cursor.execute("DROP TABLE IF EXISTS song_tb")
 
     sql = '''
     CREATE TABLE IF NOT EXISTS song_tb(
@@ -144,7 +145,7 @@ def add_song(song_source,music_list,song_rank,song_name,singer_name,music_link,p
         try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
         except:
             db.rollback()
             print("写入数据失败")
@@ -168,7 +169,7 @@ def add_weibo(user_id,source,user_head_pic,user_uid,blog_name,article_link,artic
     #user_id,source,user_head_pic,user_uid,article_link,article_content
     rag = min(len(push_time),len(article_content))
     for i in range(rag):
-        print("正在处理接收到的数据")
+        #print("正在处理接收到的数据")
         #print(len(article_content))
         content = article_content[i]
         time = push_time[i]
@@ -186,7 +187,7 @@ def add_weibo(user_id,source,user_head_pic,user_uid,blog_name,article_link,artic
         try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
         except:
             db.rollback()
             print("写入数据失败")
@@ -221,7 +222,7 @@ def add_zhihu(round_num,user_key,source,user_head_pic,follow_uid,follow_name,fol
         try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
         except:
             db.rollback()
             print("写入数据失败")
@@ -246,7 +247,7 @@ def add_media_follow(source,user_key,follow_uid,follow_media_name,cover_img_link
     try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
     except:
             db.rollback()
             print("写入数据失败")
@@ -271,7 +272,7 @@ def add_news(source,news_rank_li,news_title_li,news_link_li,news_source_link,new
         try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
         except:
             db.rollback()
             print("写入数据失败")
@@ -288,7 +289,7 @@ def add_medias(source,rank_li,title_li,hotrate_li,link_li):
     cursor.execute(sq)
     for i in range(10):
         link = (str(link_li[i]).replace('amp;', ''))
-        print("正在写入")
+        #print("正在写入")
         sql2 = "INSERT INTO media_tb (source,media_rank,media_title,hot_rate,media_link) \
             VALUES \
             ('%s','%s','%s','%s','%s')" % (
@@ -296,7 +297,7 @@ def add_medias(source,rank_li,title_li,hotrate_li,link_li):
         try:
             cursor.execute(sql2)
             db.commit()
-            print("成功写入数据")
+            #print("成功写入数据")
         except:
             db.rollback()
             print("写入数据失败")
@@ -409,27 +410,25 @@ def get_medias():
         print(result)
         media_data.append(result)
     cursor.close()
-    #print(news_data)
     db.close()
     return media_data
 def get_follow_media(user_key):
+
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
-
     sql = 'SELECT source, follow_media_name, cover_img_link, media_catlog_link, recently_update_link, recent_update_msg, author, intro, cover_img_link, recently_update_link, media_catlog_link FROM follow_media_tb WHERE user_key="%s"' % (user_key)
     cursor.execute(sql)
     data = cursor.fetchall()
     news_data = []
     for row in data:
         lin = row[0] + '$$' + str(row[1]) + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' + row[6] + '$$' + row[7] + '$$' + row[8] + '$$' + row[9]+ '$$' + row[10]
-        #print(str)
         news_data.append(lin)
     cursor.close()
-    #print(news_data)
     db.close()
     return news_data
 
+#创建key
 def get_key():
     key_list = []
     db = pymysql.connect('localhost','webbot','webbot',charset='utf8')
@@ -460,10 +459,4 @@ def get_key():
     return str(new_key)
 
 if __name__ == '__main__':
-    #data = get_sina_blog('1')
-    #     print(data)
     init_database()
-    #get_sina_blog('1')
-    #get_news()
-    #i = get_follow_media('1')
-    #print(i)

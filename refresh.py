@@ -26,8 +26,6 @@ def refresh_follow():
             #print("key:" + i + "uid:" + j)
             webbot.follow_zhihu(i,j)
             time.sleep(2)
-
-
     Timer(2400,refresh_follow).start()
 
 
@@ -67,7 +65,7 @@ def refresh_hot_medias():
     Timer(3600,refresh_hot_medias).start()
 
 def refresh_music():
-    webbot.musicbot_clooud()
+    webbot.cloudmusic_top_list()
     Timer(3800, refresh_hot_medias).start()
 
 

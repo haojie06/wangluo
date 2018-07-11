@@ -1,7 +1,5 @@
 #-*- coding:utf-8 -*-
 from http.server import HTTPServer,SimpleHTTPRequestHandler,BaseHTTPRequestHandler
-import urllib3.response
-import json
 import utils
 import database
 import urllib.parse
@@ -10,14 +8,6 @@ import refresh
 ServerClass = HTTPServer
 HandlerClass = SimpleHTTPRequestHandler
 class RequestHandler(BaseHTTPRequestHandler):
-    '''请求页面'''
-    Page = '''\
-    <html>
-    <body>
-    <p><b>HELLO 你好</p>
-    </body>
-    </html>
-    '''
 
     def do_GET(self):
         path = self.path
@@ -25,10 +15,12 @@ class RequestHandler(BaseHTTPRequestHandler):
         print('path--------'+path)
         print('query1='+str(query[0]))
         print('query2=' + str(query[1]))
+        ip = str(self.client_address[0])
+        print("接收到用户请求,id: " + str(ip))
 
         if query[0] == '/get':
             if query[1] == 'cloudmusic':
-                print("已经接到请求")
+                print('接收到用户请求---音乐排行' + '-----用户IP:' + ip)
                 music_data = str(database.get_music('网易云音乐'))
                 music_data = music_data[1:len(music_data) - 1]
                 music_data.replace(' ', '')
@@ -42,7 +34,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     raw = query[1]
                     id = raw.split(',')[1].split('=')[1]
                     #uid = raw.split(',')[2].split('=')[1]
-                    print('接收到用户请求---新浪微博---用户ID为:' + id +'-----用户IP:')
+                    print('接收到用户请求---新浪微博---用户ip为:'+ ip)
                     blog_data = database.get_sina_blog(id)
                     blog_data = str(blog_data)
                     blog_data = blog_data[1:len(blog_data)-1]
@@ -65,6 +57,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(str(news_data).encode('utf8'))
                     self.client_address
             elif 'hotmedia' in query[1]:
+                    print('接收到用户请求---热门娱乐---用户ip为:' + ip)
                     media_data = str(database.get_medias())
                     media_data = media_data[1:len(media_data) - 1]
                     print('接收到用户请求,取出热点排行')
@@ -74,7 +67,9 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_header("Content_Length", len(str(media_data)))
                     self.end_headers()
                     self.wfile.write(str(media_data).encode('utf8'))
+
             elif 'followmedia' in query[1]:
+                print('接收到用户请求---娱乐追踪---用户ip为:' + ip)
                 raw = query[1]
                 id = raw.split(',')[1].split('=')[1]
                 follow_data = str(database.get_follow_media(id))
@@ -96,10 +91,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(str(new_key).encode('utf-8'))
                 self.client_address
             elif 'zhihu' in query[1]:
+                print('接收到用户请求---知乎---用户ip为:'  + ip)
                 raw = query[1]
                 id = raw.split(',')[1].split('=')[1]
                 # uid = raw.split(',')[2].split('=')[1]
-                print('接收到用户请求---新浪微博---用户ID为:' + id + '-----用户IP:')
+                print('接收到用户请求---新浪微博-----用户IP:' + ip)
                 zhihu_data = database.get_zhihu(id)
                 self.send_response(200)
                 self.send_header("Content-Type", "text/json")
@@ -107,6 +103,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(str(zhihu_data).encode('utf8'))
                 self.client_address
+
 
         #ID需要客户端通过get?newkey获得
         if query[0] == '/add':
@@ -116,65 +113,114 @@ class RequestHandler(BaseHTTPRequestHandler):
                 id = sp[1].split('=')[1]
                 uid = sp[2].split('=')[1]
                 print("产生的请求id:"+id+'uid:'+uid)
-                webbot.follow_weibo(id,uid)
-                response = 'weibo:您的数据已经添加'
-                self.send_response(200)
-                self.send_header("Content-Type", "text/json")
-                self.send_header("Content_Length", len(response))
-                self.end_headers()
-                self.wfile.write(response.encode('utf8'))
+                result_s = webbot.follow_weibo(id,uid)
+                if result_s == 1:
+                    response = '微博:您的数据已经添加'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+                else:
+                    print("用户输入了错误的uid")
+                    response = '微博:您输入的uid似乎错了'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
             elif 'zhihu' in query[1]:
                 print("接收到请求添加知乎追随")
                 sp = query[1].split(',')
                 id = sp[1].split('=')[1]
                 uid = sp[2].split('=')[1]
                 print("产生的请求id:" + id + 'uid:' + uid)
-                webbot.follow_zhihu(id,uid)
-                response = 'zhihu:您的数据已经添加'
-                self.send_response(200)
-                self.send_header("Content-Type", "text/json")
-                self.send_header("Content_Length", len(response))
-                self.end_headers()
-                self.wfile.write(response.encode('utf8'))
+                result_z = webbot.follow_zhihu(id,uid)
+                if result_z == 1:
+                    response = 'zhihu:您的数据已经添加'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+                else:
+                    print("用户输入了错误的uid")
+                    response = '知乎:您输入的uid似乎错了'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+
             elif 'novel' in query[1]:
                 print("添加小说追踪")
                 sp = query[1].split(',')
                 id = sp[1].split('=')[1]
                 uid = sp[2].split('=')[1]
                 print("产生的请求id:" + id + 'uid:' + uid)
-                webbot.follow_qidian(id,uid)
-                response = 'qidian:您的数据已经添加'
-                self.send_response(200)
-                self.send_header("Content-Type", "text/json")
-                self.send_header("Content_Length", len(response))
-                self.end_headers()
-                self.wfile.write(response.encode('utf8'))
+                result = webbot.follow_qidian(id,uid)
+                if result == 1:
+                    response = '起点中文:您的数据已经添加++++++++++++++'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+                else:
+                    print("用户输入了错误的uid")
+                    response = '起点中文:您的uid似乎错了------------------'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
             elif 'anime' in query[1]:
                 print("添加漫画追踪")
                 sp = query[1].split(',')
                 id = sp[1].split('=')[1]
                 uid = sp[2].split('=')[1]
                 print("产生的请求id:" + id + 'uid:' + uid)
-                webbot.follow_tecent_anime(id,uid)
-                response = '腾讯动漫:您的数据已经添加'
-                self.send_response(200)
-                self.send_header("Content-Type", "text/json")
-                self.send_header("Content_Length", len(response))
-                self.end_headers()
-                self.wfile.write(response.encode('utf8'))
+                result_a = webbot.follow_tecent_anime(id,uid)
+                if result_a == 1:
+                    response = '腾讯动漫:您的数据已经添加'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+                else:
+                    print("用户输入了错误的uid")
+                    response = '腾讯动漫:您输入的uid似乎错了'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+
             elif 'tv' in query[1]:
                 print("添加电视剧追踪")
                 sp = query[1].split(',')
                 id = sp[1].split('=')[1]
                 uid = sp[2].split('=')[1]
                 print("产生的请求id:" + id + 'uid:' + uid)
-                webbot.follow_tecent_tv(id,uid)
-                response = '腾讯视频:您的数据已经添加'
-                self.send_response(200)
-                self.send_header("Content-Type", "text/json")
-                self.send_header("Content_Length", len(response))
-                self.end_headers()
-                self.wfile.write(response.encode('utf8'))
+                result_t = webbot.follow_tecent_tv(id,uid)
+                if result_t == 1:
+                    response = '腾讯视频:您的数据已经添加'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+                else:
+
+                    print("用户输入了错误的uid")
+                    response = '腾讯视频:您输入的uid似乎错了'
+                    self.send_response(200)
+                    self.send_header("Content-Type", "text/json")
+                    self.send_header("Content_Length", len(response))
+                    self.end_headers()
+                    self.wfile.write(response.encode('utf8'))
+
 
 if __name__ == '__main__':
     refresh.refresh()
