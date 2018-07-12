@@ -80,3 +80,5 @@ def refresh():
     refresh_hot_news()
     #刷新娱乐，风云榜
     refresh_hot_medias()
+if __name__ == '__main__':
+    refresh()

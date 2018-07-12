@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import requests
 import database
 from lxml import html
@@ -5,7 +6,7 @@ import time
 import fake_useragent
 import re
 import utils
-
+import codecs
 
 #构造request的请求头部，伪装为浏览器
 ua = fake_useragent.UserAgent()
@@ -184,8 +185,10 @@ def baidu_top_list():
     print("开始更新百度实时热点")
     url = 'http://top.baidu.com/buzz?b=1&fr=topnews'
     page = requests.get(url,header)
-    con = page.content
-    page = str(con, 'gb2312')  # html_doc=html.decode("utf-8","ignore")
+    #page.encoding('gb2312')
+    page = page.content.decode('gbk')
+    #con = page.content
+    #page = (con,'gb2312')  # html_doc=html.decode("utf-8","ignore")
 
     tree = html.fromstring(page)
     rank_li = tree.xpath('//td[@class="first"]/span/text()')
@@ -223,8 +226,8 @@ def weibo_top_list():
     title_li = tree.xpath('//div[@class="rank_content"]/p/a/text()')
     link = tree.xpath('//div[@class="rank_content"]/p/a/@href')
     hotrate_li = tree.xpath('//p[@class="star_num"]/span/text()')
-    title_li.pop(0)
-    link.pop(0)
+    #title_li.pop(0)
+    #link.pop(0)
     driver.quit()
     for i in link:
         link_li.append(pre + i)

@@ -106,7 +106,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         #ID需要客户端通过get?newkey获得
-        if query[0] == '/add':
+        elif query[0] == '/add':
             if 'sinablog' in query[1]:
                 print('接收到请求添加追随')
                 sp = query[1].split(',')
@@ -220,10 +220,72 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_header("Content_Length", len(response))
                     self.end_headers()
                     self.wfile.write(response.encode('utf8'))
+                #删除用户的追随
+        elif query[0] == '/delete':
+            print("开始删除")
+            if 'zhihu' in query[1]:
+                sp = query[1].split(',')
+                key = sp[1].split('=')[1]
+                uid = sp[2].split('=')[1]
+                database.delete_from_database(key,uid,'知乎')
+                response = '您的数据已删除'
+                self.send_response(200)
+                self.send_header("Content-Type", "text/json")
+                self.send_header("Content_Length", len(response))
+                self.end_headers()
+                self.wfile.write(response.encode('utf8'))
+            elif 'weibo' in query[1]:
+                sp = query[1].split(',')
+                key = sp[1].split('=')[1]
+                uid = sp[2].split('=')[1]
+                database.delete_from_database(key, uid, '微博')
+                response = '您的数据已删除'
+                self.send_response(200)
+                self.send_header("Content-Type", "text/json")
+                self.send_header("Content_Length", len(response))
+                self.end_headers()
+                self.wfile.write(response.encode('utf8'))
+            elif 'others' in query[1]:
+                sp = query[1].split(',')
+                key = sp[1].split('=')[1]
+                uid = sp[2].split('=')[1]
+                database.delete_from_database(key, uid, '其他')
+                response = '您的数据已删除'
+                self.send_response(200)
+                self.send_header("Content-Type", "text/json")
+                self.send_header("Content_Length", len(response))
+                self.end_headers()
+                self.wfile.write(response.encode('utf8'))
+        #创建用户
+        elif query[0] == '/create':
+            sp = query[1].split(',')
+            user_name = sp[0].split('=')[1]
+            user_password = sp[1].split('=')[1]
+            print("尝试创建用户" + user_name + '密码' + user_password)
+            result = database.create_user(user_name,user_password)
+            print(result)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/json")
+            self.send_header("Content_Length", len(result))
+            self.end_headers()
+            self.wfile.write(result.encode('utf8'))
+        elif query[0] == '/login':
+            sp = query[1].split(',')
+            user_name = sp[0].split('=')[1]
+            user_password = sp[1].split('=')[1]
+            print("尝试登陆：" + user_name + '密码' + user_password)
+            result = database.user_login(user_name, user_password)
+            print(result)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/json")
+            self.send_header("Content_Length", len(result))
+            self.end_headers()
+            self.wfile.write(result.encode('utf8'))
+
+
 
 
 if __name__ == '__main__':
-    refresh.refresh()
     serverAddress = ('',9999)
     server = HTTPServer(serverAddress,RequestHandler)
     server.serve_forever()

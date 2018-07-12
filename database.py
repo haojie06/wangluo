@@ -5,7 +5,7 @@ import time
 mysql相关的操作
 添加，查询
 '''
-#创建数据库以及数据表，放在方法中执行会出错，故第一次使用时先执行一次
+#创建数据库以及数据表，放在方法中执行会出错，故第一次使用时request获得的网页内容中文乱码先执行一次
 def init_database():
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
@@ -90,12 +90,14 @@ def init_database():
     '''
 
     cursor.execute(sql)
-
+ #用户的数据库
     sql = '''
-        CREATE TABLE IF NOT EXISTS keys_tb(
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            user_key INT NOT NULL
-        )
+     CREATE TABLE IF NOT EXISTS user_tb(
+     id INT PRIMARY KEY AUTO_INCREMENT,
+      user_name CHAR(30) NOT NULL,
+      user_password CHAR(30) NOT NULL,
+      bind_key CHAR(10) NOT NULL 
+     )
     '''
     cursor.execute(sql)
 
@@ -111,7 +113,8 @@ def add_song(song_source,music_list,song_rank,song_name,singer_name,music_link,p
     cursor.execute("USE bot_db")
     #抛弃旧数据
     #cursor.execute("TRUNCATE TABLE IF EXISTS song_tb")
-    cursor.execute("DROP TABLE IF EXISTS song_tb")
+    if music_list == '云音乐飙升榜':
+        cursor.execute("DROP TABLE IF EXISTS song_tb")
 
     sql = '''
     CREATE TABLE IF NOT EXISTS song_tb(
@@ -417,7 +420,7 @@ def get_follow_media(user_key):
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
-    sql = 'SELECT source, follow_media_name, cover_img_link, media_catlog_link, recently_update_link, recent_update_msg, author, intro, cover_img_link, recently_update_link, media_catlog_link FROM follow_media_tb WHERE user_key="%s"' % (user_key)
+    sql = 'SELECT source, follow_media_name, cover_img_link, media_catlog_link, recently_update_link, recent_update_msg, author, intro, cover_img_link, recently_update_link, follow_uid FROM follow_media_tb WHERE user_key="%s"' % (user_key)
     cursor.execute(sql)
     data = cursor.fetchall()
     news_data = []
@@ -458,5 +461,101 @@ def get_key():
     db.close()
     return str(new_key)
 
+#删除follow
+def delete_from_database(key,uid,type):
+
+
+    print('删除追随' + key + '---' + 'uid' +'--' +type)
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    db.commit()
+    if type == '知乎':
+        print('删除知乎追随')
+        sql = 'DELETE FROM zhihu_tb WHERE user_key="%s" AND follow_uid="%s"' % (key,uid)
+        cursor.execute(sql)
+        db.commit()
+    elif type == '微博':
+        print('删除微博追随')
+        sql = 'DELETE FROM sina_blog_tb WHERE user_id="%s" AND follow_uid="%s"' % (key, uid)
+        cursor.execute(sql)
+        db.commit()
+    elif type == '其他':
+        print('删除其他追随')
+        sql = 'DELETE FROM follow_media_tb WHERE user_key="%s" AND follow_uid="%s"' % (key, uid)
+        cursor.execute(sql)
+        db.commit()
+    cursor.close()
+    db.close()
+
+    #下面是关于用户登陆的操作
+    #创建用户
+def create_user(user_name,user_password):
+    sql = 'SELECT user_name FROM user_tb WHERE user_name="%s"' % (user_name)
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    #取回的数据大于0行说明已经存在用户了
+    if  len(data) != 0:
+        return '0,用户名已被占用'
+    elif len(user_name) > 25:
+        return '0,用户名太长了'
+    elif len(user_password) > 25:
+        return '0,密码太长了'
+    elif len(user_name) < 2:
+        return  '0,请输入长一些的名字(>2)'
+    elif len(user_password) < 3:
+        return  '0,请设置长一些的密码（>3）'
+    #可以创建
+    else:
+        key = get_key()
+        sql2 = "INSERT INTO user_tb (user_name,user_password,bind_key) \
+            VALUES \
+            ('%s','%s','%s')" % (user_name,user_password,key)
+
+        try:
+            cursor.execute(sql2)
+            db.commit()
+            # print("成功写入数据")
+            cursor.close()
+            db.close()
+            return '1,用户:' + user_name + '已创建'
+        except:
+            db.rollback()
+            print("创建用户失败")
+            cursor.close()
+            db.close()
+#用户登陆，登陆成功返回id
+def user_login(user_name,user_password):
+    db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
+    cursor = db.cursor()
+    cursor.execute("USE bot_db")
+    if len(user_name) > 25:
+        return '0,错误的用户名'
+    elif len(user_password) > 25:
+        return '0,错误的密码'
+    #格式没有错误，进行查询
+    else:
+        sql = 'SELECT bind_key FROM user_tb WHERE user_name="%s" AND user_password="%s"' % (user_name,user_password)
+        cursor.execute(sql)
+        data = cursor.fetchall()
+        if len(data) != 0:
+            #找到了匹配的用户
+            return '1,' + data[0][0]
+        else:
+            return '0,登录失败'
+    cursor.close()
+    db.close()
+
+
+
 if __name__ == '__main__':
     init_database()
+'''
+    result = create_user('haojie','981130')
+    print(result)
+    lo = user_login('haoje','981130')
+    print(lo)
+'''
