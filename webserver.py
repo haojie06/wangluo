@@ -289,3 +289,4 @@ if __name__ == '__main__':
     serverAddress = ('',9999)
     server = HTTPServer(serverAddress,RequestHandler)
     server.serve_forever()
+    print("服务已经启动，请另外启动refresh.py进行数据定时刷新")

@@ -6,7 +6,6 @@ import time
 import fake_useragent
 import re
 import utils
-import codecs
 
 #构造request的请求头部，伪装为浏览器
 ua = fake_useragent.UserAgent()
@@ -147,7 +146,6 @@ def follow_tecent_anime(user_key,follow_uid):
 
         anime_name = tree.xpath('//div[@class="ui-wm ui-mb40 clearfix"]/div/div/div/a/@title')[0]
         anime_cover_img = tree.xpath('//div[@class="ui-wm ui-mb40 clearfix"]/div/div/div/a/img/@src')[0]
-        #anime_link = 'http://ac.qq.com' + tree.xpath('//div[@class="ui-wm ui-mb40 clearfix"]/div/div/div/a/@href')[0]
         author = tree.xpath('//a[@class="works-author-face ui-left"]/@title')[0]
         recent_update = tree.xpath('//div[@class="works-chapter-list-tabcon"]/div/div/ul/li[2]/a/text()')[0]
         intro = tree.xpath('//div[@class="works-chapter-list-tabcon"]/div/div/ul/li[2]/span[2]/text()')[0]#其实在这是更新时间
@@ -222,15 +220,22 @@ def weibo_top_list():
     #print(page)
     tree = html.fromstring(page)
     link_li = []
-    rank_li = tree.xpath('//td[@class="td_01"]/span/em/text()')
-    title_li = tree.xpath('//div[@class="rank_content"]/p/a/text()')
-    link = tree.xpath('//div[@class="rank_content"]/p/a/@href')
-    hotrate_li = tree.xpath('//p[@class="star_num"]/span/text()')
+    title_li = tree.xpath('//td[@class="td-02"]/a/text()')
+    rank_li = tree.xpath('//td[@class="td-01 ranktop"]/text()')
+    hotrate_li = tree.xpath('//td[@class="td-02"]/span/text()')
+    link = tree.xpath('//td[@class="td-02"]/a/@href')
+
     #title_li.pop(0)
     #link.pop(0)
     driver.quit()
     for i in link:
         link_li.append(pre + i)
+
+    print("长度")
+    print(len(rank_li))
+    print(len(title_li))
+    print(len(link_li))
+    print(len(hotrate_li))
     database.add_news('微博热搜',rank_li,title_li,link_li,url,hotrate_li)
 
 def media_top_list():

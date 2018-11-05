@@ -11,6 +11,14 @@ def init_database():
     cursor = db.cursor()
     cursor.execute("CREATE DATABASE IF NOT EXISTS bot_db;")
     cursor.execute("USE bot_db")
+
+    sql = '''
+            CREATE TABLE IF NOT EXISTS keys_tb(
+              id INT PRIMARY KEY AUTO_INCREMENT,
+              user_key CHAR(10) NOT NULL
+            )'''
+    cursor.execute(sql)
+
     sql = '''
         CREATE TABLE IF NOT EXISTS song_tb(
           id INT PRIMARY KEY AUTO_INCREMENT,
@@ -210,17 +218,6 @@ def add_zhihu(round_num,user_key,source,user_head_pic,follow_uid,follow_name,fol
         VALUES \
         ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')" % (
             user_key, source, user_head_pic, follow_uid, follow_link, follow_name,user_action[i],article_title[i], article_content[i], push_time[i])
-        '''
-        print(user_key)
-        print(follow_name)
-        print(follow_link)
-        print(user_head_pic)
-        print(follow_uid)
-        print(user_action[i])
-        print(article_title[i])
-        print(article_content[i])
-        print(push_time[i])
-        '''
 
         try:
             cursor.execute(sql2)
@@ -310,6 +307,7 @@ def add_medias(source,rank_li,title_li,hotrate_li,link_li):
 
 #获得音乐榜单，source传入源
 def get_music(source):
+    print("开始获得网易云的榜单")
     db = pymysql.connect("localhost","webbot","webbot",charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -320,12 +318,13 @@ def get_music(source):
     for row in data:
         if row[0] != 'None':
             str = row[0] + '$$' + row[1] + '$$' + row[2] + '$$' + row[3] + '$$' + row[4] + '$$' + row[5] + '$$' +row[6]
-            print(str)
+            #print(str)
             music_data.append(str)
     db.close()
     return music_data
 
 def get_sina_blog(user_id):
+    print('开始获得新浪微博博主动态')
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -353,6 +352,7 @@ def get_sina_blog(user_id):
     return blog_data
 
 def get_zhihu(user_id):
+    print('开始获得知乎用户动态')
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -380,7 +380,7 @@ def get_zhihu(user_id):
     return zhihu_data
 
 def get_news():
-
+    print('开始获得热门信息')
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -400,6 +400,7 @@ def get_news():
 #微博热搜，百度风云，贴吧热门
 
 def get_medias():
+    print('开始获得小说，漫画，电视剧的更新信息')
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -410,13 +411,13 @@ def get_medias():
     media_data = []
     for row in data:
         result = row[0] + '$$' + str(row[1]) + '$$' + row[2] + '$$' + row[3] + '$$' + row[4]
-        print(result)
+        #print(result)
         media_data.append(result)
     cursor.close()
     db.close()
     return media_data
 def get_follow_media(user_key):
-
+    print('开始获得follow media信息')
     db = pymysql.connect("localhost", "webbot", "webbot", charset="utf8")
     cursor = db.cursor()
     cursor.execute("USE bot_db")
@@ -433,6 +434,7 @@ def get_follow_media(user_key):
 
 #创建key
 def get_key():
+    print('开始获得钥匙')
     key_list = []
     db = pymysql.connect('localhost','webbot','webbot',charset='utf8')
     cursor = db.cursor()
@@ -553,9 +555,3 @@ def user_login(user_name,user_password):
 
 if __name__ == '__main__':
     init_database()
-'''
-    result = create_user('haojie','981130')
-    print(result)
-    lo = user_login('haoje','981130')
-    print(lo)
-'''
